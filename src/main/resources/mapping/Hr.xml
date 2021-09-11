@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.school.dao.HrDao">
+    <resultMap id="StudentRateMap" type="com.school.entity.StudentRate">
+        <result column="s_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="homework_one" property="HomeWorkOne" />
+        <result column="homework_two" property="HomeWorkTwo" />
+        <result column="homework_three" property="HomeWorkThree" />
+        <result column="homework_big" property="HomeWorkBig" />
+        <result column="test_one" property="TestOne" />
+        <result column="test_two" property="TestTwo" />
+        <result column="test_three" property="TestThree" />
+        <result column="test_big" property="TestBig" />
+    </resultMap>
+    <select id="getStudentRate" resultMap="StudentRateMap">
+        SELECT s_id,user_name,sum(homework_one) as homework_one,sum(homework_two) as homework_two,
+        sum(homework_three) as homework_three,sum(homework_big) as homework_big,
+        sum(test_one) as test_one,sum(test_two) as test_two,sum(test_three) as test_three,sum(test_big) as test_big
+        FROM score join user on score.s_id=user.user_id GROUP BY s_id
+    </select>
+    <resultMap id="HrQuestionListMap" type="com.school.entity.QuestionList">
+        <result column="q_id" property="questionsId" />
+        <result column="c_id" property="questionsType" />
+        <result column="user_name" property="questionsAuthor" />
+        <result column="q_title" property="questionsTitle" />
+        <result column="q_data" property="questionsData" />
+        <result column="q_time" property="questionsTime" />
+        
+    </resultMap>
+
+    
+    <select id="getHrQuestionList" resultMap="HrQuestionListMap" parameterType="java.lang.String">
+        select * FROM question 
+		INNER JOIN user on question.author_id=user.user_id
+		WHERE user_id=#{userId}
+		
+    </select>
+    <resultMap id="HrAnswerListMap" type="com.school.entity.QuestionList">
+        <result column="q_id" property="questionsId" />
+        <result column="c_id" property="questionsType" />
+        <result column="user_name" property="questionsAuthor" />
+        <result column="q_title" property="questionsTitle" />
+        <result column="q_data" property="questionsData" />
+        <result column="q_time" property="questionsTime" />
+        
+    </resultMap>
+
+    
+    <select id="getHrAnswerList" resultMap="HrAnswerListMap" parameterType="java.lang.String">
+        select * FROM question 
+        INNER JOIN user on question.author_id=user.user_id
+		INNER JOIN answer on answer.q_id=question.q_id
+		WHERE answer_id=#{userId}
+    </select>
+    
+    
+    
+    <resultMap id="EveryRecruitMap" type="com.school.entity.Recruit">
+        <result column="user_id" property="userId" />
+        <result column="user_name" property="userName" />
+    </resultMap>
+
+    
+    <select id="getEveryRecruit" resultMap="EveryRecruitMap">
+        SELECT * FROM user
+        LEFT JOIN recruit on user.user_id=recruit.student_id
+        where role=1 and state is null or state='0'
+    </select>
+    
+    <resultMap id="TwoRecruitMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="user_name" property="userName" />
+    </resultMap>
+
+    
+    <select id="getTwoRecruit" resultMap="TwoRecruitMap">
+        SELECT recruit.student_id,user_name FROM recruit
+        INNER JOIN user on user.user_id=recruit.student_id
+		INNER JOIN interview_hr on interview_hr.student_id=recruit.student_id
+		WHERE interview_hr.state='1'
+		and recruit.state='1'
+    </select>
+    
+    <resultMap id="getHrRecruitMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="s_name" property="userName" />
+        <result column="hr_name" property="teacher" />
+        <result column="place" property="place" />
+        <result column="one_time" property="time" />
+        <result column="state" property="state" />
+    </resultMap>
+
+    
+    <select id="getHrRecruit" resultMap="getHrRecruitMap">
+		SELECT 
+		student_id,user_name as hr_name, s_name,one_time,place,state  
+		FROM interview_hr
+		INNER JOIN user on user.user_id=interview_hr.hr_id
+		INNER JOIN (
+		SELECT user_name as s_name,user_id as s_id
+		FROM interview_hr
+		INNER JOIN user on user.user_id=interview_hr.student_id) as s 
+		on interview_hr.student_id=s.s_id
+    </select>
+    <insert id="setHrRecruit">
+    
+        INSERT INTO recruit (student_id,state,employ) 
+    	VALUES (#{recruit.userId},1,0);
+    	
+    	INSERT INTO interview_hr (student_id,hr_id,state,one_time,place) 
+    	VALUES (#{recruit.userId},#{recruit.teacher},'0',#{recruit.time},#{recruit.place});
+    	
+    </insert>
+    
+    
+    <resultMap id="getTeacherRecruitMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="s_name" property="userName" />
+        <result column="hr_name" property="teacher" />
+        <result column="place" property="place" />
+        <result column="two_time" property="time" />
+        <result column="state" property="state" />
+    </resultMap>
+
+    
+    <select id="getTeacherRecruit" resultMap="getTeacherRecruitMap">
+		SELECT 
+		student_id,user_name as hr_name, s_name,two_time,place,state  
+		FROM interview_teacher
+		INNER JOIN user on user.user_id=interview_teacher.teacher_id
+		INNER JOIN (
+		SELECT user_name as s_name,user_id as s_id
+		FROM interview_teacher
+		INNER JOIN user on user.user_id=interview_teacher.student_id) as s 
+		on interview_teacher.student_id=s.s_id
+    </select>
+    
+    <insert id="setTeacherRecruit">
+    	INSERT INTO interview_teacher (student_id,teacher_id,state,two_time,place) 
+    	VALUES (#{recruit.userId},#{recruit.teacher},#{recruit.state},#{recruit.time},#{recruit.place});
+    	
+    	UPDATE recruit set recruit.state='2' where recruit.student_id=#{recruit.userId};
+    </insert>
+    
+    <resultMap id="getInterviewRMap" type="com.school.entity.InterviewR">
+        <result column="user_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="state_one" property="stateOne" />
+        <result column="state_two" property="stateTwo" />
+        <result column="employ" property="results" />
+    </resultMap>
+
+    
+    <select id="getInterviewR" resultMap="getInterviewRMap">
+		SELECT user_id,user_name,interview_hr.state as state_one,interview_teacher.state as state_two ,employ FROM recruit 
+		LEFT JOIN user on recruit.student_id=user.user_id
+		LEFT JOIN interview_hr on user.user_id=interview_hr.student_id
+        LEFT JOIN interview_teacher on user.user_id=interview_teacher.student_id
+    </select>
+    
+    <update id="setInterviewR">
+    	UPDATE recruit set recruit.employ=#{interviewR.results} where recruit.student_id=#{interviewR.userId}
+    </update>
+    
+    <resultMap id="getMyInterviewMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="place" property="place" />
+        <result column="one_time" property="time" />
+        <result column="state" property="state" />
+    </resultMap>
+
+    
+    <select id="getMyInterview" resultMap="getMyInterviewMap">
+		SELECT * FROM interview_hr
+		JOIN user on interview_hr.student_id=user.user_id
+		where hr_id=#{userId}
+    </select>
+    
+    <update id="setMyInterview">
+        UPDATE interview_hr set interview_hr.state=#{recruit.state} WHERE student_id=#{recruit.userId}
+    </update>
+
+    <resultMap id="UserListMap" type="com.school.entity.User">
+        <result column="user_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="role" property="role" />
+    </resultMap>
+    <select id="getUserList" resultMap="UserListMap">
+		SELECT * FROM user
+    </select>
+    
+    <insert id="setUserList">
+    	INSERT INTO user (user_id,user_name,password,role) 
+    	VALUES (#{user.userId},#{user.userName},1,#{user.role});
+    </insert>
+    
+    <resultMap id="AverageScoreMap" type="com.school.entity.StudentScore">
+        <result column="c_name" property="CoursesName" />
+        <result column="homework_one" property="HomeWorkOne" />
+        <result column="homework_two" property="HomeWorkTwo" />
+        <result column="homework_three" property="HomeWorkThree" />
+        <result column="homework_big" property="HomeWorkBig" />
+        <result column="test_one" property="TestOne" />
+        <result column="test_two" property="TestTwo" />
+        <result column="test_three" property="TestThree" />
+        <result column="test_big" property="TestBig" />
+    </resultMap>
+    <select id="getAverageScore" resultMap="AverageScoreMap">
+		SELECT score.c_id,
+		ROUND(AVG(homework_one),0) as homework_one,ROUND(AVG(homework_two),0) as homework_two, ROUND(AVG(homework_three),0) as homework_three
+		,ROUND(AVG(homework_big),0) as homework_big
+		,ROUND(AVG(test_one),0) as test_one,ROUND(AVG(test_two),0) as test_two,ROUND(AVG(test_three),0) as test_three
+		,ROUND(AVG(test_big),0) test_big,c_name
+		FROM score
+		LEFT JOIN course on score.c_id = course.c_id group by score.c_id
+    </select>
+    
+    <resultMap id="AcceptanceRateMap" type="com.school.entity.AcceptanceRate">
+        <result column="employ" property="employ" />
+        <result column="num" property="num" />
+    </resultMap>
+    <select id="getAcceptanceRate" resultMap="AcceptanceRateMap">
+		SELECT employ,COUNT(employ) as num
+		FROM recruit group by employ
+    </select>
+</mapper>

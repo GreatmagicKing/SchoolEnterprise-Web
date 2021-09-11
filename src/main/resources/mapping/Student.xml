@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.school.dao.StudentDao">
+
+    <resultMap id="StudentScoresMap" type="com.school.entity.StudentScore">
+        <result column="c_name" property="CoursesName" />
+        <result column="homework_one" property="HomeWorkOne" />
+        <result column="homework_two" property="HomeWorkTwo" />
+        <result column="homework_three" property="HomeWorkThree" />
+        <result column="homework_big" property="HomeWorkBig" />
+        <result column="test_one" property="TestOne" />
+        <result column="test_two" property="TestTwo" />
+        <result column="test_three" property="TestThree" />
+        <result column="test_big" property="TestBig" />
+    </resultMap>
+
+    <sql id="User_Column_List">
+    c_name, homework_one, homework_two, homework_three,homework_big,test_one,test_two,test_three,test_big
+    </sql>
+    
+    <select id="getStudentScores" resultMap="StudentScoresMap" parameterType="java.lang.String">
+        select
+        <include refid="User_Column_List" />
+        from course LEFT JOIN 
+        (select * from score WHERE score.s_id=#{userId}) as sc ON sc.c_id=course.c_id 
+    </select>
+    
+    
+    
+    <resultMap id="QuestionListMap" type="com.school.entity.QuestionList">
+        <result column="q_id" property="questionsId" />
+        <result column="c_id" property="questionsType" />
+        <result column="user_name" property="questionsAuthor" />
+        <result column="q_title" property="questionsTitle" />
+        <result column="q_data" property="questionsData" />
+        <result column="q_time" property="questionsTime" />
+        
+    </resultMap>
+
+    <sql id="QuestionList_Column_List">
+    q_id,c_id,user_name,q_title,q_data,q_time
+    </sql>
+    
+    <select id="getQuestionList" resultMap="QuestionListMap" parameterType="java.lang.String">
+        select
+        <include refid="QuestionList_Column_List" />
+        FROM question INNER JOIN user on question.author_id=user.user_id
+    </select>
+    
+    
+    
+    <insert id="setQuestionList" parameterType="com.school.entity.QuestionList">
+        insert into question (c_id,author_id,q_title,q_data,q_time) 
+        values (#{question.questionsType},#{question.questionsAuthor},#{question.questionsTitle},#{question.questionsData},now())
+    </insert>
+    
+    <resultMap id="QuestionsDetailsMap" type="com.school.entity.QuestionsDetails">
+        <result column="q_id" property="questionsId" />
+        <result column="q_title" property="questionsTitle" />
+        <result column="q_data" property="questionsData" />
+        <result column="user_id" property="questionsAuthor" />
+        <result column="q_time" property="questionsTime" />
+        <result column="c_id" property="questionsType" />
+        <result column="user_name" property="authorName" />
+        <result column="html" property="Html" />
+        <result column="js" property="Js" />
+        <result column="java" property="Java" />
+        <result column="ts" property="Ts" />
+        <result column="angular" property="Angular" />
+        <result column="mybatis" property="MyBatis" />
+        <result column="my_sql" property="SQL" />
+        <result column="junit" property="Junit" />
+    </resultMap>
+    <sql id="QuestionDetails_sql">
+        s_id ,user_name,question.q_id,q_title,q_data,q_time,question.c_id,
+        max(if(score.c_id='1',homework_big,0)) as html,max(if(score.c_id='2',homework_big,0)) as js,
+        max(if(score.c_id='3',homework_big,0)) as java,max(if(score.c_id='4',homework_big,0)) as ts,
+        max(if(score.c_id='5',homework_big,0)) as angular,max(if(score.c_id='6',homework_big,0)) as mybatis,
+        max(if(score.c_id='7',homework_big,0)) as my_sql,max(if(score.c_id='8',homework_big,0)) as junit
+    </sql>
+    <select id="getQuestionDetails" resultMap="QuestionsDetailsMap" parameterType="java.lang.Integer">
+        SELECT 
+        <include refid="QuestionDetails_sql" />
+        FROM question
+        JOIN score on score.s_id=question.author_id 
+        JOIN user on question.author_id=user.user_id 
+        WHERE question.q_id=#{questionId}
+    </select>
+    
+    <resultMap id="AnswerMap" type="com.school.entity.Answer">
+        <result column="user_name" property="answerName" />
+        <result column="answer_data" property="answerData" />
+    </resultMap>
+    
+    <select id="getAnswer" resultMap="AnswerMap" parameterType="java.lang.Integer">
+        SELECT user_name,answer_data
+        FROM answer 
+        JOIN user on user.user_id=answer.answer_id
+        WHERE answer.q_id=#{questionId}
+    </select>
+    
+    <insert id="insertQuestionDetails">
+        insert into answer (answer_id,q_id,answer_data) 
+        values (#{answerId},#{questionId},#{answerData})
+    </insert>
+    
+    <resultMap id="TestMap" type="com.school.entity.Test" >
+        <result column="test_id" property="testId" />
+        <result column="test_type" property="testType" />
+        <result column="test_part" property="testPart" />
+        <result column="test_name" property="testName" />
+        <result column="state" property="state" />
+    </resultMap>
+    
+    <select id="getTestList" resultMap="TestMap">
+        SELECT 
+        test.test_id,test_type,test_part,test_name,state 
+        FROM test 
+        LEFT JOIN (SELECT * FROM test_student where test_student.s_id=#{userId}) as ts ON test.test_id=ts.test_id 
+        where test.test_open='1'
+    </select>
+    
+    
+    <resultMap id="TestDetailsMap" type="com.school.entity.Test">
+        <result column="test_id" property="testId" />
+        <result column="test_type" property="testType" />
+        <result column="test_part" property="testPart" />
+        <result column="test_name" property="testName" />
+        <result column="state" property="state" />
+        <result column="s_result" property="arrValueString" />
+        <collection property="testProblem" ofType="com.school.entity.TestProblem">  
+              <result column="test_problem_id" property="problemId" />
+              <result column="test_data" property="testData" />
+              <result column="test_a" property="testA" />
+              <result column="test_b" property="testB" />
+              <result column="test_c" property="testC" />
+              <result column="test_d" property="testD" />
+        </collection>  
+    </resultMap>
+    <select id="getTestDetails" resultMap="TestDetailsMap">
+        SELECT * FROM test 
+        LEFT JOIN test_details ON test.test_id=test_details.test_id 
+        LEFT JOIN (SELECT * FROM test_student WHERE test_student.s_id=#{userId}) as ts ON test.test_id=ts.test_id
+        WHERE test.test_id=#{testId}
+    </select>
+    
+    
+    <resultMap id="TestResultMap" type="com.school.entity.TestResult" >
+        <result column="test_problem_id" property="testProblem" />
+        <result column="test_result" property="testResult" />
+        
+    </resultMap>
+    <select id="getTestResult" resultMap="TestResultMap">
+        SELECT * FROM test_details where test_id=#{testId}
+    </select>
+    
+    <update id="setTestScore" parameterType="com.school.entity.TestAnswer">
+        UPDATE score 
+         <set >
+            <if test="testAnswer.testPart=='1'.toString() " >
+                test_one= #{score} 
+            </if>
+            <if test="testAnswer.testPart=='2'.toString() " >
+                test_two= #{score} 
+            </if>
+            <if test="testAnswer.testPart=='3'.toString() " >
+                test_three= #{score} 
+            </if>
+            <if test="testAnswer.testPart=='4'.toString() " >
+                test_big= #{score} 
+            </if>
+        </set>        
+        where s_id=#{userId} AND c_id=#{testAnswer.testType};
+        
+        UPDATE test_student 
+        set state='1' , s_result=#{testAnswer.arrValueString} 
+        where s_id=#{userId} AND test_id =#{testAnswer.testId};
+    </update>
+    
+    <insert id="insertTestScore">
+        insert into score (s_id,c_id,
+        <if test="testAnswer.testPart=='1'.toString() " >
+             test_one
+        </if>
+        <if test="testAnswer.testPart=='2'.toString() " >
+             test_two
+        </if>
+        <if test="testAnswer.testPart=='3'.toString() " >
+             test_three 
+        </if>
+        <if test="testAnswer.testPart=='4'.toString() " >
+             test_big
+        </if>
+        )
+        values (#{userId},#{testAnswer.testType},#{score});
+    </insert>
+    
+    <insert id="insertTeststudent">
+        insert into test_student (test_id,s_id,state,s_result) 
+        values (#{testAnswer.testId},#{userId},'1',#{testAnswer.arrValueString});
+    </insert>
+    
+    <resultMap id="StudentScoreMap" type="com.school.entity.StudentScore">
+        <result column="test_one" property="TestOne" />
+        <result column="test_two" property="TestTwo" />
+        <result column="test_three" property="TestThree" />
+        <result column="test_big" property="TestBig" />
+    </resultMap>
+    
+    <select id="getStudentScore" resultMap="StudentScoreMap">
+		SELECT * FROM score
+		where s_id=#{userId} and c_id=#{testAnswer.testType}
+    </select>
+    
+    <resultMap id="TeststudentMap" type="com.school.entity.TestResult">
+        <result column="test_id" property="testProblem" />
+        <result column="s_result" property="testResult" />
+    </resultMap>
+    
+    <select id="getTeststudent" resultMap="TeststudentMap">
+		SELECT * FROM test_student WHERE s_id=#{userId} and test_id=#{testAnswer.testId}
+    </select>
+    
+    <resultMap id="getOneInterviewMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="place" property="place" />
+        <result column="one_time" property="time" />
+    </resultMap>
+    
+    <select id="getOneInterview" resultMap="getOneInterviewMap">
+		SELECT * FROM interview_hr
+		JOIN user on interview_hr.student_id=user.user_id
+		where student_id=#{userId}
+    </select>
+    
+    <resultMap id="getTwoInterviewMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="place" property="place" />
+        <result column="two_time" property="time" />
+    </resultMap>
+    
+    <select id="getTwoInterview" resultMap="getTwoInterviewMap">
+		SELECT * FROM interview_teacher
+		JOIN user on interview_teacher.student_id=user.user_id
+		where student_id=#{userId}
+    </select>
+    
+    <resultMap id="getResultInterviewMap" type="com.school.entity.Recruit">
+        <result column="student_id" property="userId" />
+        <result column="user_name" property="userName" />
+        <result column="employ" property="state" />
+    </resultMap>
+    
+    <select id="getResultInterview" resultMap="getResultInterviewMap">
+		SELECT * FROM recruit
+		JOIN user on recruit.student_id=user.user_id
+		where student_id=#{userId}
+    </select>
+</mapper>
